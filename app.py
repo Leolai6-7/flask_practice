@@ -3,9 +3,10 @@
 from flask import Flask
 
 app = Flask(__name__)
-@app.route('/')
-def home():
-    return 'This is Home Page!'
+@app.route('/<name>')
+def home(name):
+    return f"{name},Welcome,this is Home Page"
+
 @app.route("/hello")
 def hello():
     return "Hello World! This is Hello Page "
