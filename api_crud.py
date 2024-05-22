@@ -11,14 +11,14 @@ user_list = []
 
 #創建user的資源
 class User(Resource):
-    def get(self, username):
+    def post(self, username):
         user = {
         'username': username,
         'email': request.get_json().get('email')
                }
         user_list.append(user)
         return user
-    def post(self, username):
+    def get(self, username):
         for user in user_list:
             if user['username'] == username:
                 return user
