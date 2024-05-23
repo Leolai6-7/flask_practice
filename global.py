@@ -1,30 +1,33 @@
 #request_body
 {
-  "directory_path": "/path/to/directory"
+  "directory_path": "/path/to/directory",
+  "file_names": ["example1.txt", "example2.txt"]
 }
-#response_body
+
+
+#response_body，file1為密件,file2非密件
 {
   "results": [
     {
       "file_name": "file1.txt",
-      "receipt_number": "12345",
-      "receipt_date": "2024-01-01",
-      "issuing_authority": "某机关",
-      "issue_date": "2024-01-02",
-      "issue_reference_number": "XYZ-2024-001",
-      "registration_number": "电子公文",
-      "subject": "密 某文件主旨",
+      "receipt_number": "收文編號",
+      "receipt_date": "收文日期",
+      "issuing_authority": "發文機關名稱",
+      "issue_date": "發文日期",
+      "issue_reference_number": "發文機關字號",
+      "registration_number": "掛號號碼(若為電子公文則帶入電子公文)",
+      "subject": "密 文件主旨",
       "classification": "密"
     },
     {
       "file_name": "file2.txt",
-      "receipt_number": "67890",
-      "receipt_date": "2024-02-01",
-      "issuing_authority": "另一个机关",
-      "issue_date": "2024-02-02",
-      "issue_reference_number": "ABC-2024-002",
-      "registration_number": "123456789",
-      "subject": "另一个文件主旨",
+      "receipt_number": "收文編號",
+      "receipt_date": "收文日期",
+      "issuing_authority": "發文機關名稱",
+      "issue_date": "發文日期",
+      "issue_reference_number": "發文機關字號",
+      "registration_number": "掛號號碼(若為電子公文則帶入電子公文)",
+      "subject": "文件主旨",
       "classification": "一般"
     }
   ]
@@ -43,44 +46,32 @@ class ProcessFiles(Resource):
     def post(self):
         data = request.get_json()
         directory_path = data.get('directory_path')
+        file_names = data.get('file_names')
         
         if not directory_path or not os.path.isdir(directory_path):
             return {'error': 'Invalid directory path'}, 400
-
-        results = []
         
-        for file_name in os.listdir(directory_path):
+        if not file_names or not isinstance(file_names, list):
+            return {'error': 'Invalid file names'}, 400
+        
+        results = []
+        for file_name in file_names:
             file_path = os.path.join(directory_path, file_name)
-            if os.path.isfile(file_path):
+            if not os.path.isfile(file_path):
+                results.append({
+                    'file_name': file_name,
+                    'error': 'File not found'
+                })
+            else:
                 file_result = self.process_file(file_path)
                 results.append(file_result)
         
         return jsonify({'results': results})
 
     def process_file(self, file_path):
-        # 示例分析逻辑，需根据实际文件格式实现
-        with open(file_path, 'r') as file:
-            content = file.read()
-            # 以下为模拟解析结果，请根据实际需求替换解析逻辑
-            parsed_data = {
-                "receipt_number": "12345",
-                "receipt_date": "2024-01-01",
-                "issuing_authority": "某机关",
-                "issue_date": "2024-01-02",
-                "issue_reference_number": "XYZ-2024-001",
-                "registration_number": "电子公文",  # 若为电子公文，则设为"电子公文"
-                "subject": "某文件主旨",
-                "classification": "密"
-            }
-            # 如果密等为"密"，在主旨前添加"密"
-            if parsed_data["classification"] == "密":
-                parsed_data["subject"] = "密 " + parsed_data["subject"]
-        
-        parsed_data["file_name"] = os.path.basename(file_path)
-        return parsed_data
+        pass
 
 api.add_resource(ProcessFiles, '/process-files')
 
 if __name__ == '__main__':
     app.run(debug=True)
-
