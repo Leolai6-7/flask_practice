@@ -37,36 +37,68 @@
 from flask import Flask, request, jsonify
 from flask_restful import Api, Resource
 import os
-import json
+import tempfile
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 api = Api(app)
 
-class ProcessFiles(Resource):
+
+class UploadFiles(Resource):
     def post(self):
-        data = request.get_json()
-        directory_path = data.get('directory_path')
-        file_names = data.get('file_names')
-        
+        directory_path = request.form.get('directory_path')
         if not directory_path or not os.path.isdir(directory_path):
-            return {'error': 'Invalid directory path'}, 400
+            return jsonify(self.create_error_response('Invalid directory path')), 400
         
-        if not file_names or not isinstance(file_names, list):
-            return {'error': 'Invalid file names'}, 400
+        files = request.files.getlist('files')
+        if not files:
+            return jsonify(self.create_error_response('No files provided')), 400
         
         results = []
-        for file_name in file_names:
+        for file in files:
+            file_name = secure_filename(file.filename)
             file_path = os.path.join(directory_path, file_name)
-            if not os.path.isfile(file_path):
-                results.append({
-                    'file_name': file_name,
-                    'error': 'File not found'
-                })
-            else:
+            try:
+                file.save(file_path)
                 file_result = self.process_file(file_path)
-                results.append(file_result)
+                file_result['error'] = None
+            except Exception as e:
+                file_result = self.create_file_error_response(file_name, str(e))
+            results.append(file_result)
         
         return jsonify({'results': results})
+
+    def create_error_response(self, error_message):
+        return {
+            'results': [
+                {
+                    'file_name': None,
+                    'receipt_number': None,
+                    'receipt_date': None,
+                    'issuing_authority': None,
+                    'issue_date': None,
+                    'issue_reference_number': None,
+                    'registration_number': None,
+                    'subject': None,
+                    'classification': None,
+                    'error': error_message
+                }
+            ]
+        }
+
+    def create_file_error_response(self, file_name, error_message):
+        return {
+            'file_name': file_name,
+            'receipt_number': None,
+            'receipt_date': None,
+            'issuing_authority': None,
+            'issue_date': None,
+            'issue_reference_number': None,
+            'registration_number': None,
+            'subject': None,
+            'classification': None,
+            'error': error_message
+        }
 
     def process_file(self, file_path):
         pass
@@ -75,3 +107,5 @@ api.add_resource(ProcessFiles, '/process-files')
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
+    
